@@ -31,30 +31,49 @@ function showImageModal(base64DataWithPrefix) {
     });
 
     const modalImg = document.createElement('img');
-    modalImg.src = base64DataWithPrefix; // Use the full Data URI for display
+    modalImg.src = base64DataWithPrefix;
     Object.assign(modalImg.style, {
         maxWidth: '90%', maxHeight: '90%', objectFit: 'contain',
         border: '2px solid white', borderRadius: '5px',
         cursor: 'zoom-in'
     });
 
+    let blobUrl = null; // Store blobUrl to revoke it later
+
     modalImg.addEventListener('click', (e) => {
-        e.stopPropagation(); // Prevent closing modal when clicking image
+        e.stopPropagation();
         try {
             const match = base64DataWithPrefix.match(/^data:(image\/\w+);base64,(.*)$/);
             if (!match) {
                 console.error("Invalid Data URI format for Blob conversion.");
-                // Fallback: try opening the raw URI directly (might fail)
-                window.open(base64DataWithPrefix, '_blank');
+                window.open(base64DataWithPrefix, '_blank'); // Fallback
                 return;
             }
             const contentType = match[1];
             const base64Raw = match[2];
             const blob = base64ToBlob(base64Raw, contentType);
-            const blobUrl = URL.createObjectURL(blob);
+
+            // --- Revoke previous Blob URL if one exists from a prior click (unlikely but safe) ---
+            if (blobUrl) {
+                URL.revokeObjectURL(blobUrl);
+                // console.log("Revoked previous blob URL:", blobUrl); // Debugging
+            }
+
+            // --- Create and store the new Blob URL ---
+            blobUrl = URL.createObjectURL(blob);
+            // console.log("Created Blob URL:", blobUrl); // Debugging
+
             window.open(blobUrl, '_blank');
-            // Consider revoking the URL later if needed, but browser usually handles it
-            // setTimeout(() => URL.revokeObjectURL(blobUrl), 60000); // Example: revoke after 1 minute
+
+            // --- Schedule revocation after 10 seconds ---
+            setTimeout(() => {
+                if (blobUrl) {
+                    // console.log("Attempting to revoke Blob URL after delay:", blobUrl); // Debugging
+                    URL.revokeObjectURL(blobUrl);
+                    blobUrl = null; // Clear the reference
+                }
+            }, 10000); // 10000 milliseconds = 10 seconds
+
         } catch (error) {
             console.error("Error creating or opening Blob URL:", error);
             window.open(base64DataWithPrefix, '_blank'); // Fallback on error
@@ -68,6 +87,12 @@ function showImageModal(base64DataWithPrefix) {
         if (document.body.contains(overlay)) {
             document.body.removeChild(overlay);
             window.removeEventListener('keydown', keydownHandler);
+            // --- Also revoke URL when modal is closed, if it hasn't been revoked yet ---
+            if (blobUrl) {
+                // console.log("Revoking Blob URL on modal close:", blobUrl); // Debugging
+                URL.revokeObjectURL(blobUrl);
+                blobUrl = null;
+            }
         }
     };
 
@@ -79,7 +104,6 @@ function showImageModal(base64DataWithPrefix) {
     window.addEventListener('keydown', keydownHandler);
 
     overlay.addEventListener('click', (e) => {
-        // Only close if the click is directly on the overlay, not the image
         if (e.target === overlay) {
             closeModal();
         }
