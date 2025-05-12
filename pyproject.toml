@@ -1,0 +1,14 @@
+[project]
+name = "encryptpreview"
+description = "ComfyUI's non-persistent (in-memory) image preview feature"
+version = "1.0.0"
+license = {file = "LICENSE"}
+
+[project.urls]
+Repository = "https://github.com/chou18194766xx/comfyui_EncryptPreview"
+#  Used by Comfy Registry https://comfyregistry.org
+
+[tool.comfy]
+PublisherId = ""
+DisplayName = "comfyui_EncryptPreview"
+Icon = ""
